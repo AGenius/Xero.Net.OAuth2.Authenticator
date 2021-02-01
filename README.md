@@ -10,7 +10,7 @@ An an external browser window will be opened to request the permissions required
 You can also refresh the token using this code.
 
 ## Inspired By
-My Xero..Net wrapper. I felt it might be usefull to have a standa alone oAuth2 token authentication process.
+My Xero..Net wrapper. I felt it might be usefull to have a stand alone oAuth2 token authentication process.
 
 ### Create a Xero App first 
 You can follow these steps to create your Xero app to allow access to your Xero tenant(s)
