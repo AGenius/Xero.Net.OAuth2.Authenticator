@@ -174,10 +174,11 @@ namespace Xero.Net.OAuth2.Authenticator.Model
                     if (item == XeroScope.offline_access)
                     {
                         scopelist += item.ToString();
-                    } else
+                    }
+                    else
                     {
                         scopelist += item.ToString().Replace("_", ".");
-                    }                    
+                    }
                 }
 
                 return scopelist;
@@ -223,46 +224,10 @@ namespace Xero.Net.OAuth2.Authenticator.Model
         }
 
         /// <summary>
-        /// If provided, the API setup will try and match the name with the correct tenant otherwise the first tenant will be selected
-        /// </summary>
-        public string SelectedTenantName
-        {
-            get
-            {
-                if (SelectedTenant != null)
-                {
-                    return SelectedTenant.TenantName;
-                }
-                return null;
-            }
-        }
-        /// <summary>
-        /// The Tenant ID used for API calls
-        /// </summary>
-        public string SelectedTenantID
-        {
-            get
-            {
-                if (SelectedTenant != null)
-                {
-                    return SelectedTenant.TenantId.ToString();
-                }
-                return null;
-            }
-        }
-        /// <summary>
-        /// The Selected Tenant record
-        /// </summary>
-        public Tenant SelectedTenant { get; set; }
-        /// <summary>
         /// Choose to store the Received scope list and sync it with the internal list
         /// </summary>
         public bool StoreReceivedScope { get; set; }
-        /// <summary>
-        /// Auto select will ensure the first tenant is the selected tenant
-        /// Useful for single tenant connections
-        /// </summary>
-        public bool? AutoSelectTenant { get; set; }
+
 
     }
 }

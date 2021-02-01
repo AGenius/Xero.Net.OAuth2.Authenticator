@@ -32,7 +32,7 @@ To restore the packages used from NuGet and you may need to execute in the Nuget
 Update-Package -reinstall
 ``
 
-Setup the configuration : PKCE Example :-
+### Setup the configuration and Invoke the initial Authorization: PKCE Example :-
 
 ```c#
 // Setup New Config
@@ -45,17 +45,53 @@ XeroConfig = new XeroConfiguration
 };
 XeroConfig.AddScope(XeroScope.accounting_all_read);
 XeroConfig.StoreReceivedScope = true;
-SaveConfig();
+SaveConfig(null);
 
-_auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2(XeroConfig);
-_auth2.InitializeoAuth2();
+try
+{
+    _auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2(XeroConfig);
+    XeroAccessToken newToken = _auth2.InitializeoAuth2();
 
-string accessToken = _auth2.ReturnedToken.AccessToken;
-string refreshToken = _auth2.ReturnedToken.RefreshToken;
-DateTime tokenExpires = _auth2.ReturnedToken.ExpiresAtUtc;
 
+    string accessToken = newToken.AccessToken;
+    string refreshToken = newToken.RefreshToken;
+    DateTime tokenExpires = newToken.ExpiresAtUtc;
+
+    SaveConfig(newToken);
+    UpdateStatus($"AccessToken:{accessToken}");
+    UpdateStatus($"RefreshToken:{refreshToken}");
+    UpdateStatus($"ExpiresAtUtc:{tokenExpires}");
+
+}
+catch (Exception)
+{
+    // Error happened
+    throw;
+}
 ```
+### Perform a Token Refresh
 
+
+```c#
+string tokendata = Utils.ReadTextFile("XeroAccessToken.XML");
+UpdateStatus($"Loaded Token");
+if (!string.IsNullOrEmpty(tokendata))
+{
+    XeroAccessToken token = Utils.DeSerializeObject<XeroAccessToken>(tokendata);
+    XeroClientID = Utils.ReadTextFile("XeroClientID.txt");
+
+    _auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2(XeroConfig);
+    XeroAccessToken newToken = _auth2.RefreshToken(XeroClientID, token);
+
+    string accessToken = newToken.AccessToken;
+    string refreshToken = newToken.RefreshToken;
+    DateTime tokenExpires = newToken.ExpiresAtUtc;
+                
+    UpdateStatus($"AccessToken:{accessToken}");
+    UpdateStatus($"RefreshToken:{refreshToken}");
+    UpdateStatus($"ExpiresAtUtc:{tokenExpires}");
+}
+```
 There is more information returned from the Auth process (e.g. Authorised Tenants collection). I would suggest saving the entire ReturnedToken object returned from the process
 
 This can be re-loaded to the Config   XeroConfig..XeroApiToken

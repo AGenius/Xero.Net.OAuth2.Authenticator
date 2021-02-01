@@ -8,10 +8,7 @@ namespace Xero.Net.OAuth2.Authenticator.Model
     /// </summary>
     public class XeroAccessToken
     {
-        /// <summary>
-        /// List of authorised tenants
-        /// </summary>
-        public List<Tenant> Tenants { get; set; }
+
         /// <summary>
         /// The AccessToken used for API calls
         /// </summary>
@@ -21,10 +18,6 @@ namespace Xero.Net.OAuth2.Authenticator.Model
         /// </summary>
         public string RefreshToken { get; set; }
         /// <summary>
-        /// ?
-        /// </summary>
-        public string IdToken { get; set; }
-        /// <summary>
         /// When the Access Token will expire
         /// </summary>
         public DateTime ExpiresAtUtc { get; set; }
@@ -32,6 +25,5 @@ namespace Xero.Net.OAuth2.Authenticator.Model
         /// Record the Scope used. If the scope is changed on a refresh then force a re-authentication
         /// </summary>
         public string RequestedScopes { get; set; }
-
     }
 }
