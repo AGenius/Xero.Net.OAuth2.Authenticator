@@ -35,24 +35,24 @@ Update-Package -reinstall
 Setup the configuration : PKCE Example :-
 
 ```c#
-##             // Setup New Config
-            XeroConfig = new XeroConfiguration
-            {
-                ClientID = XeroClientID,
-                CallbackUri = XeroCallbackUri,
-                State = XeroState, // Optional - Not needed for a desktop app
-                codeVerifier = null // Code verifier will be generated if empty
-            };
-            XeroConfig.AddScope(XeroScope.accounting_all_read);
-            XeroConfig.StoreReceivedScope = true;
-            SaveConfig();
+// Setup New Config
+XeroConfig = new XeroConfiguration
+{
+    ClientID = XeroClientID,
+    CallbackUri = XeroCallbackUri,
+    State = XeroState, // Optional - Not needed for a desktop app
+    codeVerifier = null // Code verifier will be generated if empty
+};
+XeroConfig.AddScope(XeroScope.accounting_all_read);
+XeroConfig.StoreReceivedScope = true;
+SaveConfig();
 
-            _auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2(XeroConfig);
-            _auth2.InitializeoAuth2();
+_auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2(XeroConfig);
+_auth2.InitializeoAuth2();
 
-            string accessToken = _auth2.ReturnedToken.AccessToken;
-            string refreshToken = _auth2.ReturnedToken.RefreshToken;
-            DateTime tokenExpires = _auth2.ReturnedToken.ExpiresAtUtc;
+string accessToken = _auth2.ReturnedToken.AccessToken;
+string refreshToken = _auth2.ReturnedToken.RefreshToken;
+DateTime tokenExpires = _auth2.ReturnedToken.ExpiresAtUtc;
 
 ```
 
