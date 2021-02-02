@@ -80,8 +80,8 @@ if (!string.IsNullOrEmpty(tokendata))
     XeroAccessToken token = Utils.DeSerializeObject<XeroAccessToken>(tokendata);
     XeroClientID = Utils.ReadTextFile("XeroClientID.txt");
 
-    _auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2(XeroConfig);
-    XeroAccessToken newToken = _auth2.RefreshToken(XeroClientID, token);
+    _auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2();
+    XeroAccessToken newToken = _auth2.RefreshToken(XeroClientID, token, xeroClientSecret);
 
     string accessToken = newToken.AccessToken;
     string refreshToken = newToken.RefreshToken;
@@ -92,6 +92,30 @@ if (!string.IsNullOrEmpty(tokendata))
     UpdateStatus($"ExpiresAtUtc:{tokenExpires}");
 }
 ```
+
+or you can use the Config to perform a refresh, this uses the client ID and Secret from the config
+
+```c#
+string configData = Utils.ReadTextFile("XeroConfig.XML");
+UpdateStatus($"Loaded Config Data");
+if (!string.IsNullOrEmpty(configData))
+{
+    XeroConfig = Utils.DeSerializeObject<XeroConfiguration>(configData);
+
+    _auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2(XeroConfig);
+    XeroAccessToken newToken = _auth2.RefreshToken();
+
+    string accessToken = newToken.AccessToken;
+    string refreshToken = newToken.RefreshToken;
+    DateTime tokenExpires = newToken.ExpiresAtUtc;
+
+    UpdateStatus($"AccessToken:{accessToken}");
+    UpdateStatus($"RefreshToken:{refreshToken}");
+    UpdateStatus($"ExpiresAtUtc:{tokenExpires}");
+    SaveConfig(newToken);
+}
+```
+
 There is more information returned from the Auth process (e.g. Authorised Tenants collection). I would suggest saving the entire ReturnedToken object returned from the process
 
 This can be re-loaded to the Config   XeroConfig..XeroApiToken
