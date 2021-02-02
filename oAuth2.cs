@@ -78,7 +78,7 @@ namespace Xero.Net.OAuth2.Authenticator
             {
                 XeroConfig.XeroAPIToken = new XeroAccessToken();
             }
-            if (XeroConfig.codeVerifier == null)
+            if (XeroConfig.codeVerifier == null && string.IsNullOrEmpty(XeroConfig.ClientSecret))
             {
                 XeroConfig.codeVerifier = GenerateCodeVerifier();
             }
@@ -177,8 +177,6 @@ namespace Xero.Net.OAuth2.Authenticator
                 }
             }
             responseListener.StopWebServer();
-
-
         }
 
         /// <summary>
@@ -190,14 +188,32 @@ namespace Xero.Net.OAuth2.Authenticator
             {
                 using (var client = new HttpClient())
                 {
-                    var formContent = new FormUrlEncodedContent(new[]
-                      {
+                    FormUrlEncodedContent formContent = null;
+                    if (!string.IsNullOrEmpty(XeroConfig.ClientSecret))
+                    {
+                        // CODE
+                        string encoded = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{XeroConfig.ClientID}:{XeroConfig.ClientSecret}"));
+                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
+
+                        formContent = new FormUrlEncodedContent(new[]
+                     {
+                        new KeyValuePair<string, string>("grant_type", "authorization_code"),
+                        new KeyValuePair<string, string>("code", XeroConfig.ReturnedAccessCode),
+                        new KeyValuePair<string, string>("redirect_uri", XeroConfig.CallbackUri.AbsoluteUri),
+                      });
+                    }
+                    else
+                    {
+                        // PKCE
+                        formContent = new FormUrlEncodedContent(new[]
+                     {
                         new KeyValuePair<string, string>("grant_type", "authorization_code"),
                         new KeyValuePair<string, string>("client_id", XeroConfig.ClientID),
                         new KeyValuePair<string, string>("code", XeroConfig.ReturnedAccessCode),
                         new KeyValuePair<string, string>("redirect_uri", XeroConfig.CallbackUri.AbsoluteUri),
                         new KeyValuePair<string, string>("code_verifier", XeroConfig.codeVerifier),
                       });
+                    }
 
                     var response = Task.Run(() => client.PostAsync(XeroConstants.XERO_TOKEN_URL, formContent)).ConfigureAwait(false).GetAwaiter().GetResult();
                     if (response.StatusCode == System.Net.HttpStatusCode.OK)
@@ -271,42 +287,80 @@ namespace Xero.Net.OAuth2.Authenticator
             XeroConfig.XeroAPIToken = new XeroAccessToken(); // Remove it as its no longer valid
 
         }
-        public XeroAccessToken RefreshToken(string clientID = null, XeroAccessToken oldToken = null)
+        /// <summary>
+        /// Perform a refresh.
+        /// </summary>
+        /// <param name="clientID">The client ID to use (optional) if not supplied the data in the Config will be used</param>
+        /// <param name="oldToken">The client ID to use (optional) if not supplied the data the Config will be used</param>
+        /// <param name="secret">The client secret to use for CODE style (optional) if not supplied the data in the Config will be used</param>
+        /// <returns>New Token record</returns>
+        public XeroAccessToken RefreshToken(string clientID = null, XeroAccessToken oldToken = null, string secret = null)
         {
             try
             {
-                var client = new HttpClient();
-                var formContent = new FormUrlEncodedContent(new[]
+                using (var client = new HttpClient())
                 {
-                new KeyValuePair<string, string>("grant_type", "refresh_token"),
-                new KeyValuePair<string, string>("client_id", clientID !=null ? clientID :  XeroConfig.ClientID),
-                new KeyValuePair<string, string>("refresh_token",oldToken !=null ? oldToken.RefreshToken :  XeroConfig.XeroAPIToken.RefreshToken),
-            });
+                    FormUrlEncodedContent formContent = null;
 
-                var response = Task.Run(() => client.PostAsync(XeroConstants.XERO_TOKEN_URL, formContent)).ConfigureAwait(false).GetAwaiter().GetResult();
-
-                if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                {
-                    var content = Task.Run(() => response.Content.ReadAsStringAsync()).ConfigureAwait(false).GetAwaiter().GetResult();
-
-                    // Unpack the response tokens
-                    if (content.Contains("error"))
+                    if ((XeroConfig != null && !string.IsNullOrEmpty(XeroConfig.ClientSecret)) || secret != null)
                     {
-                        throw new Exception(content);
+                        // CODE
+                        string encoded = null;
+                        if (!string.IsNullOrEmpty(clientID) && !string.IsNullOrEmpty(secret))
+                        {
+                            // Used passed ID 
+                            encoded = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{clientID}:{secret}"));
+                        }
+                        else
+                        {
+                            // otherwise use ID from config
+                            encoded = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{XeroConfig.ClientID}:{XeroConfig.ClientSecret}"));
+                        }
+
+                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
+
+                        formContent = new FormUrlEncodedContent(new[]
+                        {
+                            new KeyValuePair<string, string>("grant_type", "refresh_token"),
+                            new KeyValuePair<string, string>("refresh_token",oldToken !=null ? oldToken.RefreshToken :  XeroConfig.XeroAPIToken.RefreshToken),
+                        });
+                    }
+                    else
+                    {
+                        // PKCE
+                        formContent = new FormUrlEncodedContent(new[]
+                        {
+                            new KeyValuePair<string, string>("grant_type", "refresh_token"),
+                            new KeyValuePair<string, string>("client_id", clientID !=null ? clientID :  XeroConfig.ClientID),
+                            new KeyValuePair<string, string>("refresh_token",oldToken !=null ? oldToken.RefreshToken :  XeroConfig.XeroAPIToken.RefreshToken),
+                        });
                     }
 
-                    // Only relevent for a new Auth - Refresh can be actioned with clientid and refresh token
-                    if (XeroConfig != null)
-                    {
-                        XeroConfig.XeroAPIToken = UnpackToken(content, true);
-                    }
-                    return UnpackToken(content, true);
+                    var response = Task.Run(() => client.PostAsync(XeroConstants.XERO_TOKEN_URL, formContent)).ConfigureAwait(false).GetAwaiter().GetResult();
 
-                }
-                else
-                {
-                    // Something didnt work - disconnected/revoked?
-                    throw new Exception(response.ReasonPhrase);
+                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        var content = Task.Run(() => response.Content.ReadAsStringAsync()).ConfigureAwait(false).GetAwaiter().GetResult();
+
+                        // Unpack the response tokens
+                        if (content.Contains("error"))
+                        {
+                            throw new Exception(content);
+                        }
+
+                        // Only relevent for a new Auth - Refresh can be actioned with clientid and refresh token
+                        if (XeroConfig != null)
+                        {
+                            XeroConfig.XeroAPIToken = UnpackToken(content, true);
+                        }
+                        return UnpackToken(content, true);
+
+                    }
+                    else
+                    {
+                        // Something didnt work - disconnected/revoked?
+                        throw new Exception(response.ReasonPhrase);
+                    }
                 }
             }
             catch (Exception ex)

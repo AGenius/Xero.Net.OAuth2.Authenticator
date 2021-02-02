@@ -33,6 +33,10 @@ namespace Xero.Net.OAuth2.Authenticator.Model
         /// </summary>
         public string ClientID { get; set; }
         /// <summary>
+        /// Secret used for Code flow style authentication
+        /// </summary>
+        public string ClientSecret { get; set; }
+        /// <summary>
         /// The URL on your server to redirect back to - should be http://localhost:port/name
         /// where "port" is any valid port e.g. 8888 and "name" is something like "callback" - http://localhost:8888/callback
         /// </summary>
@@ -197,29 +201,39 @@ namespace Xero.Net.OAuth2.Authenticator.Model
         /// </summary>
         public string AuthURL
         {
+            // PKCE
+            // https://login.xero.com/identity/connect/authorize?response_type=code&client_id=YOURCLIENTID&redirect_uri=YOURREDIRECTURI&scope=openid profile email accounting.transactions&state=123&code_challenge=XXXXXXXXX&code_challenge_method=S256
+
+            // CODE
+            // https://login.xero.com/identity/connect/authorize?response_type=code&client_id=YOURCLIENTID&redirect_uri=YOURREDIRECTURI&scope=openid profile email accounting.transactions&state=123
+
             get
             {
-                if (!string.IsNullOrEmpty(codeVerifier))
+                string url = $"{XeroConstants.XERO_AUTH_URL}response_type=code&client_id={ClientID}&redirect_uri={CallbackUri.AbsoluteUri}&scope={Scope.Replace(" ", "%20")}";
+
+                if (string.IsNullOrEmpty(ClientSecret))
                 {
-                    string codeChallenge;
-                    using (var sha256 = SHA256.Create())
+                    // Using PKCE flow authentication
+                    if (!string.IsNullOrEmpty(codeVerifier))
                     {
-                        var challengeBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(codeVerifier));
-                        codeChallenge = Convert.ToBase64String(challengeBytes)
-                            .TrimEnd('=')
-                            .Replace('+', '-')
-                            .Replace('/', '_');
+                        string codeChallenge;
+                        using (var sha256 = SHA256.Create())
+                        {
+                            var challengeBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(codeVerifier));
+                            codeChallenge = Convert.ToBase64String(challengeBytes)
+                                .TrimEnd('=')
+                                .Replace('+', '-')
+                                .Replace('/', '_');
+                        }
+                        url += $"&code_challenge={codeChallenge}&code_challenge_method=S256";
                     }
-                    string url = $"{XeroConstants.XERO_AUTH_URL}response_type=code&client_id={ClientID}&redirect_uri={CallbackUri.AbsoluteUri}&scope={Scope.Replace(" ", "%20")}&code_challenge={codeChallenge}&code_challenge_method=S256";
-                    if (!string.IsNullOrEmpty(State))
-                    {
-                        return $"{url}&state={State}";
-                    }
-
-                    return url;
-
                 }
-                return string.Empty;
+                if (!string.IsNullOrEmpty(State))
+                {
+                    url += $"&state={State}";
+                }
+
+                return url;
             }
         }
 

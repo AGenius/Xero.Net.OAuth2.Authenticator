@@ -18,6 +18,10 @@ namespace Xero.Net.OAuth2.Authenticator.Model
         /// </summary>
         public string RefreshToken { get; set; }
         /// <summary>
+        /// User ID 
+        /// </summary>
+        public string IdToken { get; set; }
+        /// <summary>
         /// When the Access Token will expire
         /// </summary>
         public DateTime ExpiresAtUtc { get; set; }
