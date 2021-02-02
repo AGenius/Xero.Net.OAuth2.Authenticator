@@ -78,7 +78,6 @@ UpdateStatus($"Loaded Token");
 if (!string.IsNullOrEmpty(tokendata))
 {
     XeroAccessToken token = Utils.DeSerializeObject<XeroAccessToken>(tokendata);
-    XeroClientID = Utils.ReadTextFile("XeroClientID.txt");
 
     _auth2 = new Xero.Net.OAuth2.Authenticator.oAuth2();
     XeroAccessToken newToken = _auth2.RefreshToken(XeroClientID, token, xeroClientSecret);
@@ -112,7 +111,6 @@ if (!string.IsNullOrEmpty(configData))
     UpdateStatus($"AccessToken:{accessToken}");
     UpdateStatus($"RefreshToken:{refreshToken}");
     UpdateStatus($"ExpiresAtUtc:{tokenExpires}");
-    SaveConfig(newToken);
 }
 ```
 
